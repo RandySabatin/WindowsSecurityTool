@@ -1,5 +1,6 @@
 import sys
 import os
+import logging
 import multiprocessing
 from multiprocessing import Process
 
@@ -12,13 +13,21 @@ try:
     from PyQt5.QtCore import QTimer
     from PyQt5.QtGui import QTextCursor
 
-    import UI.mainWindow_ui as PERIMETER_UI
+    from lib.UtilLog import UtilLog
+    import UI.mainWindow_ui as MAINWINDOW_UI
+
+    if (os.path.exists(os.getcwd() + r'/log')) == False:
+        os.makedirs('log')
+    formatter="%(asctime)s [%(levelname)s]\t [%(process)x:%(thread)x][%(funcName)s]   - %(message)s - [%(filename)s(%(lineno)d)]"
+    UtilLog.setup_logger('Tool', "log/Tool.log", logging.INFO, formatter = formatter)
+    logger = UtilLog.getLogger("Tool")
+    logger.info("-------------------------------------Start-------------------------------------")
     
 except Exception as err:
     print(str(err))
 
 
-class MainWindow(PERIMETER_UI.Ui_MainWindow, QtWidgets.QMainWindow):
+class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)

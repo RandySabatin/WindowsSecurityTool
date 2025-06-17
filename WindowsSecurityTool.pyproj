@@ -24,6 +24,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="main.py" />
+    <Compile Include="lib\UtilLog.py" />
+    <Compile Include="toolparser.py" />
     <Compile Include="UI\mainWindow_ui.py" />
     <Compile Include="WindowsSecurityTool.py" />
   </ItemGroup>
@@ -31,10 +33,14 @@
     <InterpreterReference Include="Global|VisualStudio|PYTHON3.7.9-X32 (Python 3.7 (32-bit))" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="lib\" />
     <Folder Include="UI\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="info.json" />
+    <Content Include="README.md" />
     <Content Include="UI\convert.bat" />
+    <Content Include="UI\mainWindow-Copy.ui" />
     <Content Include="UI\mainWindow.ui" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

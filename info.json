@@ -1,0 +1,23 @@
+{
+  "Status": {
+    "Realtimescanenabled": {
+      "Display": "Realtimescan",
+      "Details": "Is realtimescan enabled?"
+    },
+    "Spywarescanenabled": {
+      "Display": "Spywarescan",
+      "Details": "Is spywarescan enabled?"
+    }
+  },
+  "Providers": {
+    "AM": {
+      "Display": "Antivirus"
+    },
+    "FW": {
+      "Display": "Firewall"
+    },
+    "Web Protection": {
+      "Display": "Web Protection"
+    }
+  }
+}
