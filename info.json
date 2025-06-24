@@ -1,19 +1,62 @@
 {
-  "Status": {
-    "Realtimescanenabled": {
-      "Display": "Realtimescan",
+  "Protection Status": {
+    "AMServiceEnabled": {
+      "Display": "Antimalware Service Enabled",
+      "Details": "Is antimalware enabled?"
+    },
+    "AntivirusEnabled": {
+      "Display": "Antivirus Enabled",
+      "Details": "Is Antivirus enabled?"
+    },
+    "AntispywareEnabled": {
+      "Display": "Antispyware Enabled",
+      "Details": "Is antispywarescan enabled?"
+    },
+    "BehaviorMonitorEnabled": {
+      "Display": "BehaviorMonitorEnabled Enabled",
+      "Details": "Is BehaviorMonitorEnabled enabled?"
+    },
+    "RealTimeProtectionEnabled": {
+      "Display": "Realtimescan Enabled",
       "Details": "Is realtimescan enabled?"
     },
-    "Spywarescanenabled": {
-      "Display": "Spywarescan",
-      "Details": "Is spywarescan enabled?"
+    "IoavProtectionEnabled": {
+      "Display": "IoavProtection Enabled",
+      "Details": "Is IoavProtection enabled?"
+    },
+    "NISEnabled": {
+      "Display": "Network Inspection System Enabled",
+      "Details": "Is Network Inspection System enabled?"
     }
   },
-  "Providers": {
-    "AM": {
+  "Module Version": {
+    "AMEngineVersion": {
+      "Display": "AntiMalware Engine Version"
+    },
+    "AMProductVersion": {
+      "Display": "AntiMalware Product Version"
+    },
+    "AntivirusSignatureVersion": {
+      "Display": "Antivirus Signature Version"
+    },
+    "AntispywareSignatureVersion": {
+      "Display": "Antispyware Signature Version"
+    },
+    "QuickScanSignatureVersion": {
+      "Display": "QuickScan Signature Version"
+    },
+    "NISSignatureVersion": {
+      "Display": "Network Inspection System Signature Version"
+    },
+    "NISEngineVersion": {
+      "Display": "Network Inspection System Engine Version"
+    }
+  },
+  "Security Provider": {
+    "Antivirus": {
       "Display": "Antivirus"
     },
-    "FW": {
+    "Firewall": {
       "Display": "Firewall"
     },
     "Web Protection": {

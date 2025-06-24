@@ -3,7 +3,7 @@
 # static log class
 # It should call setup_logger to init your logger frist, then call logger = UtilLog.getLogger(name) to get the logger
 import logging
-import logging.handlers  
+import logging.handlers 
 
 class UtilLog(object):
     @staticmethod
@@ -25,3 +25,4 @@ class UtilLog(object):
         except Exception as err:
             print(str(err))
             return logging.getLogger()
+

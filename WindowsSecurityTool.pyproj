@@ -23,9 +23,11 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="lib\mainFunctions.py" />
+    <Compile Include="lib\UtilProcess.py" />
     <Compile Include="main.py" />
     <Compile Include="lib\UtilLog.py" />
-    <Compile Include="toolparser.py" />
+    <Compile Include="lib\toolparser.py" />
     <Compile Include="UI\mainWindow_ui.py" />
     <Compile Include="WindowsSecurityTool.py" />
   </ItemGroup>
