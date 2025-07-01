@@ -39,6 +39,9 @@
     "AntivirusSignatureVersion": {
       "Display": "Antivirus Signature Version"
     },
+    "AntivirusSignatureLastUpdated": {
+      "Display": "Antivirus Signature LastUpdated"
+    },
     "AntispywareSignatureVersion": {
       "Display": "Antispyware Signature Version"
     },

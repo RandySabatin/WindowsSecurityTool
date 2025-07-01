@@ -4,6 +4,8 @@ import logging
 import multiprocessing
 from multiprocessing import Process
 import time 
+import win32event
+import win32api
 
 parentdir = (os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(1, parentdir)
@@ -16,11 +18,8 @@ try:
 
     from lib.UtilLog import UtilLog
     from lib.UtilProcess import ProcessUtils
-    from lib.mainFunctions import winSecurity
+    from lib.mainFunctions import securityStat, securityScan, securityUpdate
     import UI.mainWindow_ui as MAINWINDOW_UI
-
-    safe_globals = {"__builtins__": None}
-    safe_locals = {}
 
     if (os.path.exists(os.getcwd() + r'/log')) == False:
         os.makedirs('log')
@@ -36,19 +35,36 @@ except Exception as err:
 class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
-        super().__init__(parent)
-        super().setupUi(self)
+        try:
+            super().__init__(parent)
+            super().setupUi(self)
+            
+            self.resultQueue = multiprocessing.Queue()
+            self.eventChildSentFinish = multiprocessing.Event()
+            self.eventUpdateFinish = multiprocessing.Event()
+            
+            self.statusTimer = QTimer(self)
+            self.statusTimer.timeout.connect(self.statusMonitor)
 
-        self.resultQueue = multiprocessing.Queue()
-        self.eventChildSentFinish = multiprocessing.Event()
+            self.scanTimer = QTimer(self)
+            self.scanTimer.timeout.connect(self.scanMonitor)
 
-        self.Timer = QTimer(self)
-        self.Timer.timeout.connect(self.RTMonitor)
+            self.updateTimer = QTimer(self)
+            self.updateTimer.timeout.connect(self.updateMonitor)
+            
+            self.isForceStop = False
+            self.process = None
+            self.isProcessOn = False
+            self.time2Check = 0
+            
+            event_scan_stop = 'Global\\__scan_stop'
+            event_scan_end = 'Global\\__scan_end'
+            # Create a named, manual-reset, initially non-signaled event
+            self.hEventScanStop = win32event.CreateEvent(None, True, False, event_scan_stop)
+            self.hEventScanEnd = win32event.CreateEvent(None, True, False, event_scan_end)
 
-        self.isForceStop = False
-        self.process = None
-        self.isProcessOn = False
-        self.time2Check = 0
+        except Exception as err:
+            logger.exception(str(err))
 
     def setupUI(self):  # Entry point of the whole class
         self.setupPerimeter()
@@ -58,9 +74,22 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
         self.cursor_wp_textBrowser = QTextCursor(self.wp_textBrowser.document())
 
         self.cursor_settings_textBrowser = QTextCursor(self.settings_textBrowser.document())
-        self.cursor_update_textBrowser = QTextCursor(self.update_textBrowser.document())
+        self.cursor_version_textBrowser = QTextCursor(self.version_textBrowser.document())
 
+        #get status of Windows Security
         self.status_pushButton.clicked.connect(self.startStatusRun)
+
+        #perform scan
+        self.path_pushButton.setEnabled(False)
+        self.QS_radioButton.clicked.connect(self.setScanUI)
+        self.FS_radioButton.clicked.connect(self.setScanUI)
+        self.CS_radioButton.clicked.connect(self.setScanUI)
+        self.start_pushButton.clicked.connect(self.startScanRun)
+        self.stop_pushButton.clicked.connect(lambda: self.stopScanRun(True))
+        self.path_pushButton.clicked.connect(self.scanSetPath)
+
+        #perform update
+        self.update_pushButton.clicked.connect(self.startUpdateRun)
 
         print('UI is up')
 
@@ -84,40 +113,111 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
 
     # end def
 
-    def stopScanUI(self):
+    def startUpdateRun(self):
+        try:
+            self.eventUpdateFinish.clear()
+
+            self.updateTimer.start(1000)
+
+            self.update_pushButton.setEnabled(False)
+
+            process = Process(target=executeUpdate, args=(self.eventUpdateFinish,))
+
+            process.start()
+
+        except Exception as e:
+            logger.error("startUpdate - " + str(e))
+    # end def
+
+    def updateMonitor(self):
         try:
 
-            self.path_lineEdit.setEnabled(False)
+            if (self.eventUpdateFinish.is_set()):
+                self.eventUpdateFinish.clear()
+                
+                self.updateTimer.stop()
+                self.update_pushButton.setEnabled(True)
+        except Exception as err:
+            logger.exception(str(err))
+
+    def setScanUI(self):
+        try:
+
             self.path_pushButton.setEnabled(False)
-            self.start_pushButton.setEnabled(True)
             self.stop_pushButton.setEnabled(False)
 
+            self.start_pushButton.setEnabled(True)
             self.QS_radioButton.setEnabled(True)
             self.FS_radioButton.setEnabled(True)
             self.CS_radioButton.setEnabled(True)
 
-            self.path_lineEdit.setEnabled(True)
-            self.path_pushButton.setEnabled(True)
+            if self.CS_radioButton.isChecked():
+                self.path_pushButton.setEnabled(True)
 
-            #UserPath = (self.path_lineEdit.text()).strip()
-            #if len(UserPath):
-                #self.start_pushButton.setEnabled(True)
+                scanPath = (self.path_lineEdit.text()).strip()
+                if len(scanPath):
+                    self.start_pushButton.setEnabled(True)
+                else:
+                    self.start_pushButton.setEnabled(False)
 
         except Exception as err:
             logger.exception(str(err))
 
 
-    def startScanUI(self):
+    def startScanRun(self):
         try:
-
+            scanPath = None
             self.QS_radioButton.setEnabled(False)
             self.FS_radioButton.setEnabled(False)
             self.CS_radioButton.setEnabled(False)
 
-            self.path_lineEdit.setEnabled(False)
             self.path_pushButton.setEnabled(False)
             self.start_pushButton.setEnabled(False)
+
+            if self.FS_radioButton.isChecked():
+                scan_type = "FullScan"
+            elif self.CS_radioButton.isChecked():
+                scanPath = (self.path_lineEdit.text()).strip()
+                scan_type = "CustomScan"
+            else:
+                scan_type = "QuickScan"
+            
+            process = Process(target=executeScan, args=(scan_type, \
+                                                               scanPath))
+            process.start()
             self.stop_pushButton.setEnabled(True)
+            self.scanTimer.start(1000)
+
+        except Exception as err:
+            logger.exception(str(err))
+
+    def stopScanRun(self,force=False):
+        try:
+            if force:
+                win32event.SetEvent(self.hEventScanStop)
+            self.setScanUI()
+
+        except Exception as err:
+            logger.exception(str(err))
+
+    def scanSetPath(self):
+        try:
+            dir_str = QFileDialog.getExistingDirectory(None, "Select the path to scan", None, QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+            if len(dir_str):
+                dir_str = dir_str.replace('/', '\\')
+                self.path_lineEdit.setText(dir_str)
+                self.start_pushButton.setEnabled(True)
+
+        except Exception as err:
+            logger.exception(str(err))
+    def scanMonitor(self):
+        try:
+            response = win32event.WaitForSingleObject(self.hEventScanEnd, 0)  # non-blocking check
+            if response == win32event.WAIT_OBJECT_0:
+                logger.info("EventScanEnd is signalled")
+                win32event.ResetEvent(self.hEventScanEnd)
+                self.scanTimer.stop()
+                self.stopScanRun(False)
 
         except Exception as err:
             logger.exception(str(err))
@@ -129,13 +229,13 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
             self.clearQueue(self.resultQueue)
             self.eventChildSentFinish.clear()
 
-            self.Timer.start(1000)
+            self.statusTimer.start(1000)
 
             self.status_pushButton.setEnabled(False)
             self.settings_textBrowser.clear()
-            self.update_textBrowser.clear()
+            self.version_textBrowser.clear()
 
-            self.process = Process(target=executeScript, args=(self.resultQueue, \
+            self.process = Process(target=executeStatus, args=(self.resultQueue, \
                                                                self.eventChildSentFinish))
 
             self.process.start()
@@ -169,7 +269,7 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
             return
     # end def
 
-    def RTMonitor(self):
+    def statusMonitor(self):
         try:
             while not self.resultQueue.empty():
                 result = self.resultQueue.get()
@@ -180,12 +280,12 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
                     self.append_TextBrowser("setting", res)
 
                 elif "SendToProtectionDisplay" in result["function"]:
-                    res = result["message"]
+                    res = result["message"]["Antivirus"][0]
                     self.append_TextBrowser("av", res)
 
                 elif "SendToVersionDisplay" in result["function"]:
                     res = result["message"]
-                    self.append_TextBrowser("update", res)
+                    self.append_TextBrowser("version", res)
 
                 else:
                     res = result["message"]
@@ -198,7 +298,6 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
                 current_PIDs = ProcessUtils.getAllProcessesToValues()
 
                 if (self.isProcessOn) and (not self.eventChildSentFinish.is_set()) and (self.process.pid not in current_PIDs) and (self.resultQueue.empty()):
-                    self.append_ExecutionStatus("<font color=%s>%s</font>" % ('red', "Scenario execution was terminated. Please verify if your anti-virus is set to monitor-only mode."))
                     self.eventChildSentFinish.set()
 
             if (self.eventChildSentFinish.is_set()) and (self.resultQueue.empty()):
@@ -210,7 +309,7 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
                 
                 self.process.join()
                 self.isProcessOn = False
-                self.Timer.stop()
+                self.statusTimer.stop()
                 self.time2Check = 0
                 self.status_pushButton.setEnabled(True)
 
@@ -228,9 +327,9 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
             elif "setting" in window_name:
                 text_browser_attr = "settings_textBrowser"
                 cursor_attr = "cursor_settings_textBrowser"
-            elif "update" in window_name:
-                text_browser_attr = "update_textBrowser"
-                cursor_attr = "cursor_update_textBrowser"
+            elif "version" in window_name:
+                text_browser_attr = "version_textBrowser"
+                cursor_attr = "cursor_version_textBrowser"
             else:
                 return
             
@@ -257,18 +356,58 @@ class MainWindow(MAINWINDOW_UI.Ui_MainWindow, QtWidgets.QMainWindow):
             logger.error("append_TextBrowser - " + str(e))
     #end def
 
-def executeScript(resultQueue, \
+def executeStatus(resultQueue, \
                  eventChildSentFinish):
     try:
-        Scenario = winSecurity(resultQueue)
+        Scenario = securityStat(resultQueue)
         logger.info("Starts Executing ")
 
         Scenario.get_defender_status(timeout=30)
+        Scenario.get_antivirus_info()
         
         logger.info("Done Executing. ")
         del Scenario
 
         eventChildSentFinish.set()
+        return            
+    except Exception as err:
+        logger.exception(str(err))
+
+def executeScan(scanType, scanPath=None):
+    try:
+        event_scan_end = 'Global\\__scan_end'
+        # Open the named event with permissions to set it
+        hEvent = win32event.OpenEvent(
+            win32event.SYNCHRONIZE | win32event.EVENT_MODIFY_STATE,
+            False,
+            event_scan_end)
+
+        Scenario = securityScan()
+        logger.info("Starts Executing ")
+
+        Scenario.start_manual_scan(scanType, scanPath)
+        
+        logger.info("Done Executing. ")
+        del Scenario
+
+        win32event.SetEvent(hEvent)
+        win32api.CloseHandle(hEvent)
+
+        return            
+    except Exception as err:
+        logger.exception(str(err))
+
+def executeUpdate(eventUpdateFinish):
+    try:
+        Scenario = securityUpdate()
+        logger.info("Starts Executing Update")
+
+        Scenario.start_update()
+        
+        logger.info("Done Executing Update")
+        del Scenario
+
+        eventUpdateFinish.set()
         return            
     except Exception as err:
         logger.exception(str(err))

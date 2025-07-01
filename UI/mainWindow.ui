@@ -68,7 +68,7 @@
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>51</height>
+           <height>16777215</height>
           </size>
          </property>
          <property name="html">
@@ -85,7 +85,7 @@ p, li { white-space: pre-wrap; }
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>51</height>
+           <height>16777215</height>
           </size>
          </property>
          <property name="html">
@@ -102,7 +102,7 @@ p, li { white-space: pre-wrap; }
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>51</height>
+           <height>16777215</height>
           </size>
          </property>
          <property name="html">
@@ -138,7 +138,7 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item row="3" column="0" colspan="4">
-        <widget class="QGroupBox" name="update_groupBox">
+        <widget class="QGroupBox" name="version_groupBox">
          <property name="minimumSize">
           <size>
            <width>778</width>
@@ -150,7 +150,7 @@ p, li { white-space: pre-wrap; }
          </property>
          <layout class="QGridLayout" name="gridLayout_5">
           <item row="0" column="0" rowspan="2">
-           <widget class="QTextBrowser" name="update_textBrowser">
+           <widget class="QTextBrowser" name="version_textBrowser">
             <property name="verticalScrollBarPolicy">
              <enum>Qt::ScrollBarAlwaysOn</enum>
             </property>
@@ -262,6 +262,9 @@ p, li { white-space: pre-wrap; }
          <width>371</width>
          <height>24</height>
         </rect>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
        </property>
       </widget>
       <widget class="QPushButton" name="path_pushButton">
